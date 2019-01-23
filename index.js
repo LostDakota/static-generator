@@ -21,8 +21,13 @@ let getData = async url => {
     const browser = await puppet.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
 
-    await page.goto(url, { waitUntil: 'networkidle0' });
+    await page.goto(url, { waitUntil: 'networkidle2' });
     await page.waitForSelector('#content');
+
+    await page.evaluate(() => {
+        var disqus = document.querySelector('#disqus_thread');
+        if(disqus) disqus.innerHTML = '';
+    })
 
     const html = await page.content();
 
