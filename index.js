@@ -1,9 +1,10 @@
 const puppet = require('puppeteer');
 const fs = require('fs');
 const mkdir = require('mkdirp');
+const process = require('process').setMaxListeners(0).on('error', e => console.error(e));
 
 let scrape = async (url = 'https://mika.house') => {
-    const browser = await puppet.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    let browser = await puppet.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
 
     await page.goto(url, {
@@ -12,12 +13,15 @@ let scrape = async (url = 'https://mika.house') => {
 
     const results = await page.$$eval('a', as => as.map(a => a.href));
 
-    browser.close();
+    await browser.close();
 
-    return results.filter(link => link.indexOf('mika.house') !== -1);
+    return results.filter(link => link.indexOf('https://mika.house') !== -1 && link.indexOf('disqus') === -1);
 }
 
 let getData = async url => {
+    if(!fs.existsSync('./static')){
+        mkdir('./static');
+    }
     const browser = await puppet.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
 
@@ -33,9 +37,10 @@ let getData = async url => {
 
     browser.close();
 
-    let dir = `./static/${url.replace('https://mika.house/', '')}`
+    let dir = `./static/${url.replace('https://mika.house/', '')}`;
     if (!fs.existsSync(dir)) {
         mkdir(dir, err => {
+            if(err) return err;
             fs.writeFileSync(`${dir}/index.html`, html, err => {
                 if (err) return err;
             });
@@ -45,6 +50,19 @@ let getData = async url => {
             if (err) return err;
         });
     }
+}
+
+let sitemapBuilder = (links) => {
+    var map = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+
+    links.forEach(link => {
+        console.log(link);
+        map += `<url><loc>${link}</loc></url>\n`;
+    });
+
+    map += '</urlset>';
+
+    return map;
 }
 
 scrape().then(data => {
@@ -60,5 +78,8 @@ scrape().then(data => {
         for (var i = 0; i < results.length; i++) {
             getData(results[i]);
         }    
+        fs.writeFile('./static/sitemap.xml', sitemapBuilder(results), err => {
+            if(err) return err;
+        });
     });
 });
