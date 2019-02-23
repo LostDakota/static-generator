@@ -7,9 +7,8 @@ let scrape = async (url = 'https://mika.house') => {
     let browser = await puppet.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
 
-    await page.goto(url, {
-        waitUntil: 'networkidle2'
-    });
+    await page.goto(url, { waitUntil: 'networkidle2' });
+    await page.waitForSelector('#content');
 
     const results = await page.$$eval('a', as => as.map(a => a.href));
 
@@ -55,7 +54,11 @@ let getData = async url => {
 let sitemapBuilder = (links) => {
     var map = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
-    links.forEach(link => {
+    links.sort((a, b) => {
+        var first = a.toLowerCase();
+        var second = b.toLowerCase();
+        return (first < second) ? -1 : (first > second) ? 1 : 0;
+    }).forEach(link => {
         console.log(link);
         map += `<url><loc>${link}</loc></url>\n`;
     });
@@ -67,7 +70,10 @@ let sitemapBuilder = (links) => {
 
 scrape().then(data => {
     let results = [];
-    data.forEach(d => results.push(d));
+    data.forEach(d => {
+        if(results.indexOf(d) === -1)
+            results.push(d);
+    });
     scrape('https://mika.house/blog').then(data => {
         data.forEach(d => {
             if (!results.includes(d)) {
