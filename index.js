@@ -51,21 +51,18 @@ let getData = async url => {
     }
 }
 
-let sitemapBuilder = (links) => {
-    var map = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-
-    links.sort((a, b) => {
+let sitemapBuilder = links => {    
+    var blocks = ['<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'];
+    let linkblocks = links.sort((a, b) => {
         var first = a.toLowerCase();
         var second = b.toLowerCase();
         return (first < second) ? -1 : (first > second) ? 1 : 0;
-    }).forEach(link => {
-        console.log(link);
-        map += `<url><loc>${link}</loc></url>\n`;
-    });
+    }).map(link => `<url><loc>${link}</loc></url>\n`);
 
-    map += '</urlset>';
+    blocks = blocks.concat(linkblocks);
+    blocks.push('</urlset>');
 
-    return map;
+    return blocks.join();
 }
 
 scrape().then(data => {
@@ -85,7 +82,7 @@ scrape().then(data => {
             getData(results[i]);
         }    
         fs.writeFile('./static/sitemap.xml', sitemapBuilder(results), err => {
-            if(err) return err;
+            if(err) return err;            
         });
     });
 });
