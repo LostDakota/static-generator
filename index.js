@@ -62,7 +62,7 @@ let sitemapBuilder = links => {
     blocks = blocks.concat(linkblocks);
     blocks.push('</urlset>');
 
-    return blocks.join();
+    return blocks.join('');
 }
 
 scrape().then(data => {
